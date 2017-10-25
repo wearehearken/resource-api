@@ -53,12 +53,21 @@ apiResultToMsg onError onSuccess result =
             onSuccess lists
 
 
-handleHttpResult : ResourceApiConfig supportingContext createData item error -> Result Http.Error result -> Result error result
+handleHttpResult :
+    ResourceApiConfig supportingContext createData item error
+    -> Result Http.Error result
+    -> Result error result
 handleHttpResult config result =
     Result.mapError config.handleHttpError result
 
 
-create : ResourceApiConfig supportingContext createData item error -> supportingContext -> createData -> String -> (Result error item -> msg) -> Cmd msg
+create :
+    ResourceApiConfig supportingContext createData item error
+    -> supportingContext
+    -> createData
+    -> String
+    -> (Result error item -> msg)
+    -> Cmd msg
 create config supportingContext createData urlTemplate resultHandler =
     let
         placeholders =
@@ -75,7 +84,13 @@ create config supportingContext createData urlTemplate resultHandler =
             |> HttpBuilder.send (handleHttpResult config >> resultHandler)
 
 
-update : ResourceApiConfig supportingContext createData item error -> supportingContext -> item -> String -> (Result error item -> msg) -> Cmd msg
+update :
+    ResourceApiConfig supportingContext createData item error
+    -> supportingContext
+    -> item
+    -> String
+    -> (Result error item -> msg)
+    -> Cmd msg
 update config supportingContext item urlTemplate resultHandler =
     let
         placeholders =
@@ -92,7 +107,12 @@ update config supportingContext item urlTemplate resultHandler =
             |> HttpBuilder.send (handleHttpResult config >> resultHandler)
 
 
-index : ResourceApiConfig supportingContext createData item error -> supportingContext -> String -> (Result error (List item) -> msg) -> Cmd msg
+index :
+    ResourceApiConfig supportingContext createData item error
+    -> supportingContext
+    -> String
+    -> (Result error (List item) -> msg)
+    -> Cmd msg
 index config supportingContext urlTemplate resultHandler =
     let
         placeholders =
@@ -105,7 +125,13 @@ index config supportingContext urlTemplate resultHandler =
             |> HttpBuilder.send (handleHttpResult config >> resultHandler)
 
 
-delete : ResourceApiConfig supportingContext createData item error -> supportingContext -> item -> String -> (Result error item -> msg) -> Cmd msg
+delete :
+    ResourceApiConfig supportingContext createData item error
+    -> supportingContext
+    -> item
+    -> String
+    -> (Result error item -> msg)
+    -> Cmd msg
 delete config supportingContext item urlTemplate resultHandler =
     let
         placeholders =
@@ -130,7 +156,10 @@ type alias ResourceApiConfig supportingContext createData item error =
     }
 
 
-blankConfig : (Http.Error -> error) -> Json.Decode.Decoder item -> ResourceApiConfig supportingContext createData item error
+blankConfig :
+    (Http.Error -> error)
+    -> Json.Decode.Decoder item
+    -> ResourceApiConfig supportingContext createData item error
 blankConfig handleError itemDecoder =
     { itemDecoder = itemDecoder
     , createEncoder = \item -> Json.Encode.string <| "Need to provide an encoder for: " ++ toString item
@@ -143,7 +172,11 @@ blankConfig handleError itemDecoder =
     }
 
 
-createConfig : (Http.Error -> error) -> Json.Decode.Decoder item -> (ResourceApiConfig supportingContext createData item error -> ResourceApiConfig supportingContext createData item error) -> ResourceApiConfig supportingContext createData item error
+createConfig :
+    (Http.Error -> error)
+    -> Json.Decode.Decoder item
+    -> (ResourceApiConfig supportingContext createData item error -> ResourceApiConfig supportingContext createData item error)
+    -> ResourceApiConfig supportingContext createData item error
 createConfig handleError itemDecoder setFields =
     blankConfig handleError itemDecoder
         |> setFields
@@ -166,7 +199,11 @@ generateResourceApiFromConfig config =
     }
 
 
-generateResourceApi : (Http.Error -> error) -> Json.Decode.Decoder item -> (ResourceApiConfig supportingContext createData item error -> ResourceApiConfig supportingContext createData item error) -> ResourceApi supportingContext createData item error msg
+generateResourceApi :
+    (Http.Error -> error)
+    -> Json.Decode.Decoder item
+    -> (ResourceApiConfig supportingContext createData item error -> ResourceApiConfig supportingContext createData item error)
+    -> ResourceApi supportingContext createData item error msg
 generateResourceApi handleError itemDecoder setFields =
     createConfig handleError itemDecoder setFields
         |> generateResourceApiFromConfig
