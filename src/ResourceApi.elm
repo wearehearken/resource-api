@@ -1,4 +1,4 @@
-module Shared.Api.Resources
+module ResourceApi
     exposing
         ( ResourceApiConfig
         , ResourceApi
@@ -125,6 +125,24 @@ index config supportingContext urlTemplate resultHandler =
             |> HttpBuilder.send (handleHttpResult config >> resultHandler)
 
 
+show :
+    ResourceApiConfig supportingContext createData item error
+    -> supportingContext
+    -> String
+    -> (Result error item -> msg)
+    -> Cmd msg
+show config supportingContext urlTemplate resultHandler =
+    let
+        placeholders =
+            config.showPlaceholders supportingContext
+    in
+        substitutePlaceholders placeholders urlTemplate
+            |> HttpBuilder.get
+            |> HttpBuilder.withHeaders standardJsonHeaders
+            |> HttpBuilder.withExpect (Http.expectJson config.itemDecoder)
+            |> HttpBuilder.send (handleHttpResult config >> resultHandler)
+
+
 delete :
     ResourceApiConfig supportingContext createData item error
     -> supportingContext
@@ -152,6 +170,7 @@ type alias ResourceApiConfig supportingContext createData item error =
     , updateEncoder : item -> Json.Encode.Value
     , updatePlaceholders : supportingContext -> item -> List ( String, String )
     , indexPlaceholders : supportingContext -> List ( String, String )
+    , showPlaceholders : supportingContext -> List ( String, String )
     , handleHttpError : Http.Error -> error
     }
 
@@ -168,6 +187,7 @@ blankConfig handleError itemDecoder =
     , updateEncoder = \item -> Json.Encode.string <| "Need to provide an encoder for: " ++ toString item
     , updatePlaceholders = emptyPlaceholders2
     , indexPlaceholders = emptyPlaceholders1
+    , showPlaceholders = emptyPlaceholders1
     , handleHttpError = handleError
     }
 
@@ -187,6 +207,7 @@ type alias ResourceApi supportingContext createData item error msg =
     , update : supportingContext -> item -> String -> (Result error item -> msg) -> Cmd msg
     , delete : supportingContext -> item -> String -> (Result error item -> msg) -> Cmd msg
     , index : supportingContext -> String -> (Result error (List item) -> msg) -> Cmd msg
+    , show : supportingContext -> String -> (Result error item -> msg) -> Cmd msg
     }
 
 
@@ -196,6 +217,7 @@ generateResourceApiFromConfig config =
     , update = update config
     , delete = delete config
     , index = index config
+    , show = show config
     }
 
 
