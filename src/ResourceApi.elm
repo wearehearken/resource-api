@@ -54,7 +54,7 @@ apiResultToMsg onError onSuccess result =
 
 
 handleHttpResult :
-    ResourceApiConfig supportingContext createData item error
+    ResourceApiConfig supportingContext newItemData item error
     -> Result Http.Error result
     -> Result error result
 handleHttpResult config result =
@@ -62,19 +62,19 @@ handleHttpResult config result =
 
 
 create :
-    ResourceApiConfig supportingContext createData item error
+    ResourceApiConfig supportingContext newItemData item error
     -> supportingContext
-    -> createData
+    -> newItemData
     -> String
     -> (Result error item -> msg)
     -> Cmd msg
-create config supportingContext createData urlTemplate resultHandler =
+create config supportingContext newItemData urlTemplate resultHandler =
     let
         placeholders =
-            config.createPlaceholders supportingContext createData
+            config.createPlaceholders supportingContext newItemData
 
         body =
-            config.createEncoder createData
+            config.createEncoder newItemData
     in
         substitutePlaceholders placeholders urlTemplate
             |> HttpBuilder.post
@@ -85,7 +85,7 @@ create config supportingContext createData urlTemplate resultHandler =
 
 
 update :
-    ResourceApiConfig supportingContext createData item error
+    ResourceApiConfig supportingContext newItemData item error
     -> supportingContext
     -> item
     -> String
@@ -108,7 +108,7 @@ update config supportingContext item urlTemplate resultHandler =
 
 
 index :
-    ResourceApiConfig supportingContext createData item error
+    ResourceApiConfig supportingContext newItemData item error
     -> supportingContext
     -> String
     -> (Result error (List item) -> msg)
@@ -126,7 +126,7 @@ index config supportingContext urlTemplate resultHandler =
 
 
 show :
-    ResourceApiConfig supportingContext createData item error
+    ResourceApiConfig supportingContext newItemData item error
     -> supportingContext
     -> String
     -> (Result error item -> msg)
@@ -144,7 +144,7 @@ show config supportingContext urlTemplate resultHandler =
 
 
 delete :
-    ResourceApiConfig supportingContext createData item error
+    ResourceApiConfig supportingContext newItemData item error
     -> supportingContext
     -> item
     -> String
@@ -162,10 +162,10 @@ delete config supportingContext item urlTemplate resultHandler =
             |> HttpBuilder.send (handleHttpResult config >> resultHandler)
 
 
-type alias ResourceApiConfig supportingContext createData item error =
+type alias ResourceApiConfig supportingContext newItemData item error =
     { itemDecoder : Json.Decode.Decoder item
-    , createEncoder : createData -> Json.Encode.Value
-    , createPlaceholders : supportingContext -> createData -> List ( String, String )
+    , createEncoder : newItemData -> Json.Encode.Value
+    , createPlaceholders : supportingContext -> newItemData -> List ( String, String )
     , deletePlaceholders : supportingContext -> item -> List ( String, String )
     , updateEncoder : item -> Json.Encode.Value
     , updatePlaceholders : supportingContext -> item -> List ( String, String )
@@ -178,7 +178,7 @@ type alias ResourceApiConfig supportingContext createData item error =
 blankConfig :
     (Http.Error -> error)
     -> Json.Decode.Decoder item
-    -> ResourceApiConfig supportingContext createData item error
+    -> ResourceApiConfig supportingContext newItemData item error
 blankConfig handleError itemDecoder =
     { itemDecoder = itemDecoder
     , createEncoder = \item -> Json.Encode.string <| "Need to provide an encoder for: " ++ toString item
@@ -195,15 +195,15 @@ blankConfig handleError itemDecoder =
 createConfig :
     (Http.Error -> error)
     -> Json.Decode.Decoder item
-    -> (ResourceApiConfig supportingContext createData item error -> ResourceApiConfig supportingContext createData item error)
-    -> ResourceApiConfig supportingContext createData item error
+    -> (ResourceApiConfig supportingContext newItemData item error -> ResourceApiConfig supportingContext newItemData item error)
+    -> ResourceApiConfig supportingContext newItemData item error
 createConfig handleError itemDecoder setFields =
     blankConfig handleError itemDecoder
         |> setFields
 
 
-type alias ResourceApi supportingContext createData item error msg =
-    { create : supportingContext -> createData -> String -> (Result error item -> msg) -> Cmd msg
+type alias ResourceApi supportingContext newItemData item error msg =
+    { create : supportingContext -> newItemData -> String -> (Result error item -> msg) -> Cmd msg
     , update : supportingContext -> item -> String -> (Result error item -> msg) -> Cmd msg
     , delete : supportingContext -> item -> String -> (Result error item -> msg) -> Cmd msg
     , index : supportingContext -> String -> (Result error (List item) -> msg) -> Cmd msg
@@ -211,7 +211,7 @@ type alias ResourceApi supportingContext createData item error msg =
     }
 
 
-generateResourceApiFromConfig : ResourceApiConfig supportingContext createData item error -> ResourceApi supportingContext createData item error msg
+generateResourceApiFromConfig : ResourceApiConfig supportingContext newItemData item error -> ResourceApi supportingContext newItemData item error msg
 generateResourceApiFromConfig config =
     { create = create config
     , update = update config
@@ -224,18 +224,18 @@ generateResourceApiFromConfig config =
 generateResourceApi :
     (Http.Error -> error)
     -> Json.Decode.Decoder item
-    -> (ResourceApiConfig supportingContext createData item error -> ResourceApiConfig supportingContext createData item error)
-    -> ResourceApi supportingContext createData item error msg
+    -> (ResourceApiConfig supportingContext newItemData item error -> ResourceApiConfig supportingContext newItemData item error)
+    -> ResourceApi supportingContext newItemData item error msg
 generateResourceApi handleError itemDecoder setFields =
     createConfig handleError itemDecoder setFields
         |> generateResourceApiFromConfig
 
 
-emptyPlaceholders1 : a -> List ( String, String )
+emptyPlaceholders1 : supportingContext -> List ( String, String )
 emptyPlaceholders1 =
     \_ -> []
 
 
-emptyPlaceholders2 : a -> b -> List ( String, String )
+emptyPlaceholders2 : supportingContext-> itemData -> List ( String, String )
 emptyPlaceholders2 =
     \_ _ -> []
